@@ -20,7 +20,7 @@ type Page struct {
 	Body  []byte
 }
 
-func (p *Page) save() error {
+func (p *Page) Save() error {
 	filename := p.Title + ".txt"
 	return ioutil.WriteFile(filename, p.Body, 0600)
 }
@@ -116,7 +116,7 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 
 	body := r.FormValue("body")
 	p:= &Page{Title: title, Body: []byte(body)}
-	err = p.save()
+	err = p.Save()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -133,9 +133,8 @@ func getTitle(w http.ResponseWriter, r *http.Request) (string, error) {
 	return m[2], nil	// The title is the second subexpression.
 }
 
-func main() {
-
-  // First main function:
+func StartServer() {
+	// First main function:
 	// p1 := &Page{Title: "TestPage", Body: []byte("This is a sample Page.")}
 	// p1.save()
 	// p2, _ := loadPage("TestPage")
@@ -146,4 +145,8 @@ func main() {
 	http.HandleFunc("/save/", saveHandler)
 	fmt.Print("Listening on :8080")
 	http.ListenAndServe(":8080", nil)
+}
+
+func main() {
+	StartServer()
 }
