@@ -3,12 +3,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"net/http"
-	"html/template"
 	"regexp"
-	"errors"
 )
 
 var templates = template.Must(template.ParseFiles("edit.html", "view.html"))
@@ -28,7 +28,7 @@ func (p *Page) Save() error {
 // loadPage - loadPage constructs the file name from the title parameter,
 // reads the file's contents into a new variable body, and returns a pointer
 // to a Page literal constructed with the proper title and body values.
-func loadPage(title string) (*Page, error) {
+func LoadPage(title string) (*Page, error) {
 	filename := title + ".txt"
 	body, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -37,68 +37,36 @@ func loadPage(title string) (*Page, error) {
 	return &Page{Title: title, Body: body}, nil
 }
 
-func viewHandler(w http.ResponseWriter, r *http.Request) {
-
-	// title := r.URL.Path[len("/view/"):]
-
+func ViewHandler(w http.ResponseWriter, r *http.Request) {
 	title, err := getTitle(w, r)
 	if err != nil {
 		return
 	}
-
-	p, err := loadPage(title)
+	fmt.Println("I GOT HERE")
+	p, err := LoadPage(title)
 	if err != nil {
 		http.Redirect(w, r, "/edit/"+title, http.StatusFound)
 		return
 	}
 
-	// fmt.Fprintf(w, "<h1>%s</h1><div>%s</div>", p.Title, p.Body)
-
-	// t, _ := template.ParsFiles("view.html")
-	// t.Execute(w, p)
-
 	renderTemplate(w, "view", p)
 }
 
 func editHandler(w http.ResponseWriter, r *http.Request) {
-
-	// title := r.URL.Path[len("/edit/"):]
-
 	title, err := getTitle(w, r)
 	if err != nil {
 		return
 	}
 
-	p, err := loadPage(title)
+	p, err := LoadPage(title)
 	if err != nil {
 		p = &Page{Title: title}
 	}
-
-	// fmt.Fprintf(w, "<h1>Editing %s</h1>"+
-		// "<form action=\"/save/%s\" method=\"POST\">"+
-		// "<textarea name=\"body\">%s</textarea><br>"+
-		// "<input type=\"submit\" value=\"Save\">"+
-		// "</form>",
-		// p.Title, p.Title, p.Body)
-
-	// t, _ := template.ParseFiles("edit.html")
-	// t.Execute(w, p)
 
 	renderTemplate(w, "edit", p)
 }
 
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
-
-	// t, err := template.ParseFiles(tmpl + ".html")
-	// if err != nil {
-		// http.Error(w, err.Error(), http.StatusInternalServerError)
-		// return
-	// }
-	// err = t.Execute(w, p)
-	// if err != nil {
-		// http.Error(w, err.Error(), http.StatusInternalServerError)
-	// }
-
 	err := templates.ExecuteTemplate(w, tmpl+".html", p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -106,21 +74,19 @@ func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
 }
 
 func saveHandler(w http.ResponseWriter, r *http.Request) {
-
-	// title := r.URL.Path[len("/save/"):]
-
 	title, err := getTitle(w, r)
 	if err != nil {
 		return
 	}
 
 	body := r.FormValue("body")
-	p:= &Page{Title: title, Body: []byte(body)}
+	p := &Page{Title: title, Body: []byte(body)}
 	err = p.Save()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	http.Redirect(w, r, "/view/"+title, http.StatusFound)
 }
 
@@ -130,17 +96,12 @@ func getTitle(w http.ResponseWriter, r *http.Request) (string, error) {
 		http.NotFound(w, r)
 		return "", errors.New("Invalid Page Title")
 	}
-	return m[2], nil	// The title is the second subexpression.
+
+	return m[2], nil // The title is the second subexpression.
 }
 
 func StartServer() {
-	// First main function:
-	// p1 := &Page{Title: "TestPage", Body: []byte("This is a sample Page.")}
-	// p1.save()
-	// p2, _ := loadPage("TestPage")
-	// fmt.Println(string(p2.Body))
-
-	http.HandleFunc("/view/", viewHandler)
+	http.HandleFunc("/view/", ViewHandler)
 	http.HandleFunc("/edit/", editHandler)
 	http.HandleFunc("/save/", saveHandler)
 	fmt.Print("Listening on :8080")
